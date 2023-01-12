@@ -1,2 +1,5 @@
 # green-crab-functional-response
-This repository associated code, output, and figures for our study investigating functional responses of male and female European green crabs (Carcinus maenas) and the potential sex specific impacts of invasions. 
+This repository contains the associated code, output, and figures for our study investigating functional responses of male and female European green crabs (Carcinus maenas) and the potential sex specific impacts of invasions. 
+
+Site-specific data on green crab population sex ratio from trapping sites within Clayoquot Sound belong to the Ahousaht and Tla-o-qui-aht Nations and were shared with us for the purpose of supplementing this research project.
+
