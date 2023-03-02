@@ -10,6 +10,11 @@ library(DHARMa)
 library(emmeans)
 library(patchwork)
 source("ggplot_paper_theme.R") #for custom plot themes
+#custom colour palettes for plots
+pal <- c("#625a94", "#11c2b5")
+#pal2 <- c("#3f3a5e", "#73bdb7")
+#pal3 <- c("#8a84b3", "#1e7d76")
+#pal4 <- c("#fd8d3c","#800026")
 
 # LOADING DATA ----------------------------------------
 #the follow csv file is the complete dataset for both Beth's experiment and this 
@@ -213,8 +218,12 @@ fcrab_asymp <- nls(Clam_Consumed ~ SSasymp(Density, Asym, R0, lrc),
                    data = fcrab)
 summary(fcrab_asymp)
 
+#add jitter to the points manually, since we can't do it within the frboot.plot
+outII_female_boot$x <- jitter(outII_female_boot$x, amount = 0.07)
+outII_male_boot$x <- jitter(outII_male_boot$x, amount = 0.07)
+
 #final figure
-pdf("functional_response_curves.pdf", width = 9, height = 6)
+pdf("Figure1.pdf", width = 9, height = 6)
 par(bg = 'white', fg = 'black', mar = c(4.1, 4.1, 3.1, 2.1))
 plot(outII_female_boot, xlim=c(0, 16), ylim = c(0, 10), type='n',
      xlab = "",
@@ -229,13 +238,13 @@ drawpoly(outII_female_boot, border = NA,
          col=adjustcolor("#625a94", alpha.f = 0.4))
 drawpoly(outII_male_boot, border = NA, 
          col=adjustcolor("#11c2b5", alpha.f = 0.4))
-points(outII_female_boot, pch=17, col=adjustcolor("#625a94", alpha.f = 0.4), 
-       cex = 1.5)
-points(outII_male_boot, pch=20,  col=adjustcolor("#11c2b5", alpha.f = 0.4), 
-       cex = 1.5)
+points(outII_female_boot, pch=24, col="#625a94", 
+       bg=adjustcolor("#625a94", alpha.f = 0.4), cex = 1.5)
+points(outII_male_boot, pch=21,  col="#196c66", 
+       bg=adjustcolor("#11c2b5", alpha.f = 0.4), cex = 1.5)
 legend(x = "topleft", legend = c("Male", "Female"), 
        col = c("#11c2b5", "#625a94"), lty = c(1, 2), 
-       cex = 1, pch = c(20, 17),
+       cex = 1, pt.cex = 1.5, lwd = 1.5, pch = c(20, 17),
        bty="n")
 title(xlab = "Initial clam density (number/trial)", mgp = c(2, 1, 0), cex = 1.5)
 title(ylab = "Number of clams consumed", mgp = c(2, 1, 0), cex = 1.5)
@@ -377,8 +386,7 @@ both_params <- bind_rows(female_params, male_params)
 a_param <- both_params %>% 
   filter(rowname == "a")
 
-pal <- c("#625a94", "#11c2b5")
-a <- ggplot(a_param, aes(sex, value, colour = sex)) +
+a <- ggplot(a_param, aes(sex, value, colour = sex, shape = sex)) +
   geom_point(size = 5) +
   geom_errorbar(aes(ymin = lower_bca, ymax = upper_bca), width = 0.2) +
   theme_paper_large() +
@@ -387,12 +395,13 @@ a <- ggplot(a_param, aes(sex, value, colour = sex)) +
   theme(legend.position = "none",
         axis.text.x = element_blank())+
   scale_color_manual(values = pal) + 
+  scale_shape_manual(values = c(17,19)) +
   scale_x_discrete(labels = c("Female", "Male"))
 
 h_param <- both_params %>% 
   filter(rowname == "h")
 
-h <- ggplot(h_param, aes(sex, value, colour = sex)) +
+h <- ggplot(h_param, aes(sex, value, colour = sex, shape = sex)) +
   geom_point(size = 5) +
   geom_errorbar(aes(ymin = lower_bca, ymax = upper_bca), width = 0.2) +
   theme_paper_large() +
@@ -401,6 +410,7 @@ h <- ggplot(h_param, aes(sex, value, colour = sex)) +
   theme(legend.position = "none",
         axis.text.x = element_blank()) +
   scale_color_manual(values = pal) + 
+  scale_shape_manual(values = c(17,19)) +
   scale_x_discrete(labels = c("Female", "Male"))
 
 ne_param <- boot_dist_test %>% 
@@ -416,7 +426,7 @@ ne_param_plotting <- tibble(sex = c("female","male"),
                             upper = c(ne_param[1,3], ne_param[1,5]),
                             lower = c(ne_param[1,4], ne_param[1,6]))
 
-ne <- ggplot(ne_param_plotting, aes(sex, mean, colour = sex)) +
+ne <- ggplot(ne_param_plotting, aes(sex, mean, colour = sex, shape = sex)) +
   geom_point(size = 5) +
   geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +
   theme_paper_large() +
@@ -424,6 +434,7 @@ ne <- ggplot(ne_param_plotting, aes(sex, mean, colour = sex)) +
        x = "Sex") +
   theme(legend.position = "none") +
   scale_color_manual(values = pal) + 
+  scale_shape_manual(values = c(17,19)) +
   scale_x_discrete(labels = c("Female", "Male"))
 
 
@@ -440,7 +451,7 @@ max_rates <- tibble(value = 1/h_f*T_f) %>%
   mutate(sex = "Female") %>% 
   bind_rows(max_rate_male)
 
-max_rates_plot <- ggplot(max_rates, aes(sex, mean, colour = sex)) +
+max_rates_plot <- ggplot(max_rates, aes(sex, mean, colour = sex, shape = sex)) +
   geom_point(size = 5) +
   geom_errorbar(aes(ymin = lower_ci, ymax = upper_ci), width = 0.2) +
   theme_paper_large() +
@@ -448,6 +459,7 @@ max_rates_plot <- ggplot(max_rates, aes(sex, mean, colour = sex)) +
        x = "Sex") +
   theme(legend.position = "none") +
   scale_color_manual(values = pal) + 
+  scale_shape_manual(values = c(17,19)) +
   scale_x_discrete(labels = c("Female", "Male"))
 max_rates_plot
 
@@ -457,7 +469,8 @@ a + h + max_rates_plot +
   theme(plot.margin = margin(r = 0, l = 0)) & 
   theme(plot.tag.position = c(0.17, 0.97),
         plot.tag = element_text(size = 16, hjust = 0, vjust = 0))
-#ggsave("functional_response_params.pdf", width = 5, height = 9)
+#ggsave("Figure2.pdf", width = 5, height = 9)
+#ggsave("Figure2.png", width = 5, height = 9)
 # COMPARISON OF CRAB SIZE IN FUNCTIONAL RESPONSE EXPERIMENT ------------
 cara_compare <- lm(CW ~ Sex, data = mycrab)
 summary(cara_compare) #carapace width is almost significantly different
@@ -529,21 +542,30 @@ df_predict <- ggpredict(prop_eaten_model_cara,
            (Sex == 'F' & (stand_cw >= min(filter(mycrab, Sex == "F")$stand_cw) & 
                             stand_cw <= max(filter(mycrab, Sex == "F")$stand_cw))))
 
-pal <- c("#625a94", "#11c2b5")
 ggplot() + 
   geom_ribbon(data = df_predict, aes(x = CW, ymin = conf.low, ymax = conf.high, 
                                      fill = Sex),
               alpha = 0.3) +
-  geom_line(data = df_predict, aes(x = CW, y = predicted, colour = Sex, lty = Sex)) +
-  geom_point(data = mycrab, aes(x = CW, y = prop_eaten, color = Sex)) +
+  geom_line(data = df_predict, aes(x = CW, y = predicted, 
+                                   colour = Sex, 
+                                   lty = Sex)) +
+  geom_point(data = mycrab, aes(x = CW, y = prop_eaten, 
+                                color = Sex, pch = Sex)) +
   labs(x = "Carapace width (mm)", y = "Proportion consumed") +
   scale_color_manual(name = "Sex", values = pal, labels = c("Female", "Male")) +
   scale_fill_manual(values = pal, labels = c("Female", "Male"), guide = NULL) +
   scale_linetype_manual(name = "Sex", values = c("dashed","solid"),
                         labels = c("Female", "Male")) +
+  scale_shape_manual(values = c(17, 19),labels = c("Female", "Male")) +
   ylim(0,1) +
-  theme_paper_large()
-#ggsave("carapace_width_prop_consumed.pdf",width = 9, height = 6)
+  theme_paper_large() +
+  theme(legend.position = c(0.08,0.95),
+        legend.background = element_blank(),
+        legend.title = element_blank(),
+        legend.key = element_blank(),
+        legend.key.size=unit(2,"lines")) 
+#ggsave("FigureS2.png",width = 9, height = 6)
+#ggsave("FigureS2.pdf",width = 9, height = 6)
 
 #CLAW WIDTH
 claw_prop_eaten_model_predict <- ggpredict(prop_eaten_model_claw, 
@@ -557,29 +579,34 @@ claw_prop_eaten_model_predict <- ggpredict(prop_eaten_model_claw,
            (Sex == 'F' & (stand_claw >= min(filter(mycrab, Sex == "F")$stand_claw) & 
                             stand_claw <= max(filter(mycrab, Sex == "F")$stand_claw))))
 
-
-pal <- c("#625a94", "#11c2b5")
-
 ggplot() + 
   geom_ribbon(data = claw_prop_eaten_model_predict, 
               aes(x = Claw_width, ymin = conf.low, ymax =  conf.high, 
                   fill = Sex), alpha = 0.3) +
   geom_line(data = claw_prop_eaten_model_predict, 
             aes(x = Claw_width, y = predicted, colour = Sex, lty = Sex)) +
-  geom_point(data = mycrab, aes(x = Claw_width, y = prop_eaten, color = Sex)) +
+  geom_point(data = mycrab, aes(x = Claw_width, y = prop_eaten, 
+                                color = Sex, shape = Sex)) +
   labs(x = "Crusher claw height (mm)", y = "Proportion consumed") +
   scale_color_manual(name = "Sex", values = pal, labels = c("Female", "Male")) +
   scale_fill_manual(values = pal, labels = c("Female", "Male"), guide = NULL) +
   scale_linetype_manual(name = "Sex", values = c("dashed","solid"),
                         labels = c("Female", "Male")) +
+  scale_shape_manual(values = c(17, 19),labels = c("Female", "Male")) +
   ylim(0,1) +
-  theme_paper_large()
-#ggsave("claw_prop_consumed.pdf",width = 9, height = 6)
+  theme_paper_large() +
+  theme(legend.position = c(0.08,0.95),
+        legend.background = element_blank(),
+        legend.title = element_blank(),
+        legend.key = element_blank(),
+        legend.key.size=unit(2,"lines")) 
+#ggsave("Figure3.pdf",width = 9, height = 6)
+#ggsave("Figure3.png",width = 9, height = 6)
 
 # CONSUMPTION OF CLAM SIZE -------------------------------
 # clam length
 lm_clam_consumption <- lm(length ~ sex * consumed, data = clam_consumption)
- summary(lm_clam_consumption)
+summary(lm_clam_consumption)
 simulateResiduals(lm_clam_consumption, plot = TRUE)
 emmeans(lm_clam_consumption, pairwise ~ sex | consumed)$contrasts
 emmeans(lm_clam_consumption, pairwise ~ consumed | sex)$contrasts
@@ -590,14 +617,12 @@ lm_clam_consumption_fit <- ggpredict(lm_clam_consumption,
          length = predicted,
          consumed = case_when(group == 0 ~ "Unconsumed",
                               TRUE ~ "Consumed"))
-
-pal <- c("#625a94", "#11c2b5")
 ggplot() + 
   geom_jitter(data = clam_consumption,
-              aes(x = consumed_yn, y = length, colour = sex), 
+              aes(x = consumed_yn, y = length, colour = sex, shape = sex), 
               alpha = 0.2, height=0) +
   geom_point(data = lm_clam_consumption_fit, 
-             aes(x = consumed, y = length, colour = sex), 
+             aes(x = consumed, y = length, colour = sex, shape = sex), 
              size = 3) +
   geom_errorbar(data = lm_clam_consumption_fit, 
                 aes(x = consumed, ymin = conf.low, ymax = conf.high, 
@@ -607,8 +632,10 @@ ggplot() +
   facet_wrap(~sex)+
   theme_paper_large() +
   scale_color_manual(values = pal, labels = c("Female", "Male")) +
+  scale_shape_manual(values = c(17,19)) +
   theme(legend.position = "none")
-#ggsave("clam_lengths.pdf",width = 9, height = 6)
+#ggsave("Figure4.pdf",width = 9, height = 6)
+#ggsave("Figure4.png",width = 9, height = 6)
 
 # clam width
 #lm_clam_consumption_w <- lm(width ~ Sex * consumed, data = clam_consumption)
@@ -663,10 +690,10 @@ lm_speed_fit <- ggpredict(lm_speed, terms = "sex") %>%
 
 path_plot <- ggplot() + 
   geom_jitter(data = behaviour, 
-              aes(x = sex, y = path_length, colour = sex), 
-              alpha = 0.2, height=0) +
+              aes(x = sex, y = path_length, colour = sex, shape = sex), 
+              alpha = 0.4, height=0) +
   geom_point(data = lm_path_fit, 
-             aes(x = sex, y = path_length, colour = sex), 
+             aes(x = sex, y = path_length, colour = sex, shape = sex), 
              size = 5) +
   geom_errorbar(data = lm_path_fit, 
                 aes(x = sex, ymin = conf.low, ymax = conf.high, colour = sex), 
@@ -674,7 +701,8 @@ path_plot <- ggplot() +
   labs (y="Path length (cm)", x = "") +
   ylim(200,1200) +
   theme_paper_large() +
-  scale_colour_manual(values = c("#625a94", "#11c2b5")) +
+  scale_colour_manual(values = pal) +
+  scale_shape_manual(values = c(17,19)) +
   theme(legend.position = "none",
         axis.text.x = element_blank()) + 
   scale_x_discrete(labels = c("Female", "Male"))
@@ -682,10 +710,10 @@ path_plot
 
 moving_plot <- ggplot() + 
   geom_jitter(data = behaviour, 
-              aes(x = sex, y = prop_moving, colour = sex), 
-              alpha = 0.2, height=0) +
+              aes(x = sex, y = prop_moving, colour = sex, shape = sex), 
+              alpha = 0.4, height=0) +
   geom_point(data = lm_prop_moving_fit, 
-             aes(x = sex, y = prop_moving, colour = sex), 
+             aes(x = sex, y = prop_moving, colour = sex, shape = sex), 
              size = 5) +
   geom_errorbar(data = lm_prop_moving_fit, 
                 aes(x = sex, ymin = conf.low, ymax = conf.high, colour = sex), 
@@ -693,7 +721,8 @@ moving_plot <- ggplot() +
   labs (y="Proportion time moving", x = "") +
   ylim(0,1) +
   theme_paper_large()+
-  scale_colour_manual(values = c("#625a94", "#11c2b5")) +
+  scale_colour_manual(values = pal) +
+  scale_shape_manual(values = c(17,19)) +
   theme(legend.position = "none",
         axis.text.x = element_blank()) + 
   scale_x_discrete(labels = c("Female", "Male"))
@@ -702,17 +731,18 @@ moving_plot
 
 speed_plot <- ggplot() + 
   geom_jitter(data = behaviour, 
-              aes(x = sex, y = speed, colour = sex), 
-              alpha = 0.2, height=0) +
+              aes(x = sex, y = speed, colour = sex, shape = sex), 
+              alpha = 0.4, height=0) +
   geom_point(data = lm_speed_fit, 
-             aes(x = sex, y = speed, colour = sex), 
+             aes(x = sex, y = speed, colour = sex, shape = sex), 
              size = 5) +
   geom_errorbar(data = lm_speed_fit, 
                 aes(x = sex, ymin = conf.low, ymax = conf.high, colour = sex), 
                 width = 0.2) +
   labs (y="Speed (cm/s)", x = "Sex") +
   theme_paper_large() +
-  scale_colour_manual(values = c("#625a94", "#11c2b5")) +
+  scale_colour_manual(values = pal) +
+  scale_shape_manual(values = c(17,19)) +
   theme(legend.position = "none") + 
   scale_x_discrete(labels = c("Female", "Male"))
 
@@ -726,9 +756,10 @@ path_plot + moving_plot + speed_plot +
   theme(plot.margin = margin(r = 0, l = 0)) & 
   theme(plot.tag.position = c(0.17, 0.97),
         plot.tag = element_text(size = 16, hjust = 0, vjust = 0))
-#ggsave("behavioural_params.pdf", width = 5, height = 9)
+#ggsave("Figure5.pdf", width = 5, height = 9)
+#ggsave("Figure5.png", width = 5, height = 9)
 
-# SUPPLEMENTAL FIGURE 1-----------------------------------------------------
+# SUPPLEMENTAL FIGURE  outliers------------------------------------------------
 # Plot with the the two "outliers"/lowest female values removes
 mycrab_noout <- mycrab %>% 
   filter(CW > 55) %>% 
@@ -752,16 +783,19 @@ df_predict_noout <- ggpredict(prop_eaten_model_noout,
 pal <- c("#625a94", "#11c2b5")
 
 ggplot() + 
-  geom_ribbon(data = df_predict_noout, aes(x = CW, ymin = conf.low, ymax = conf.high, fill = Sex), alpha = 0.3) +
+  geom_ribbon(data = df_predict_noout, aes(x = CW, ymin = conf.low, 
+                                           ymax = conf.high, fill = Sex), 
+              alpha = 0.3) +
   geom_line(data = df_predict_noout, aes(x = CW, y = predicted, colour = Sex)) +
   geom_point(data = mycrab_noout, aes(x = CW, y = prop_eaten, color = Sex)) +
-  labs(x = "Carapace width (mm)", y = "Proportion consumed", size = "Clam\nDensity") +
+  labs(x = "Carapace width (mm)", y = "Proportion consumed", 
+       size = "Clam\nDensity") +
   scale_color_manual(values = pal) +
   scale_fill_manual(values = pal) +
   ylim(0,1) +
   theme_classic()
 
-# SUPPLEMENTAL FIGURE ---------------------------------------------
+# SUPPLEMENTAL FIGURE ratio---------------------------------------------
 prop_eaten_model_ratio <- glm(prop_eaten ~ stand_density + stand_claw_ratio + 
                                 Sex + Sex:stand_claw_ratio, 
                               data = mycrab, 
@@ -769,17 +803,22 @@ prop_eaten_model_ratio <- glm(prop_eaten ~ stand_density + stand_claw_ratio +
                               family = binomial(link = logit))
 summary(prop_eaten_model_ratio)
 
-df_predict_ratio <- ggpredict(prop_eaten_model_ratio, terms = c("stand_claw_ratio[n=100]", "Sex")) %>% 
+df_predict_ratio <- ggpredict(prop_eaten_model_ratio, 
+                              terms = c("stand_claw_ratio[n=100]", "Sex")) %>% 
   rename(stand_claw_ratio = x, 
          Sex = group) %>%
-  mutate(claw_ratio = stand_claw_ratio*(sd(mycrab$claw_ratio)) + mean(mycrab$claw_ratio)) %>% 
+  mutate(claw_ratio = stand_claw_ratio*(sd(mycrab$claw_ratio)) + 
+           mean(mycrab$claw_ratio)) %>% 
   filter((Sex == "M" & claw_ratio > 0.206)| (Sex == "F" & claw_ratio < 0.274))
 
 pal <- c("#625a94", "#11c2b5")
 
 ggplot() + 
-  geom_ribbon(data = df_predict_ratio, aes(x = claw_ratio, ymin = conf.low, ymax = conf.high, fill = Sex), alpha = 0.3) +
-  geom_line(data = df_predict_ratio, aes(x = claw_ratio, y = predicted, colour = Sex)) +
+  geom_ribbon(data = df_predict_ratio, aes(x = claw_ratio, ymin = conf.low, 
+                                           ymax = conf.high, fill = Sex), 
+              alpha = 0.3) +
+  geom_line(data = df_predict_ratio, aes(x = claw_ratio, y = predicted, 
+                                         colour = Sex)) +
   geom_point(data = mycrab, aes(x = claw_ratio, y = prop_eaten, color = Sex)) +
   labs(x = "Ratio claw to carapace width (mm)", y = "Proportion consumed") +
   scale_color_manual(values = pal) +

@@ -38,6 +38,15 @@ m_to_f_first <- m_to_f %>%
   arrange(day) %>% 
   distinct(site, month, year, .keep_all = TRUE)
 
+m_to_f_accum <- m_to_f %>% 
+  group_by(site, month, year) %>% 
+  summarize(male_accum = sum(male_total),
+            female_accum = sum(female_total),
+            prop_female_accum = female_accum/(female_accum + male_accum),
+            total_accum = male_accum + female_accum,
+            unique_id = first(unique_id)) %>% 
+  ungroup()
+
 crab_sizes <- read_csv("crab_population.csv") %>% 
   group_by(sex) %>% 
   summarize(n = n(),
@@ -458,9 +467,9 @@ og_model_outputs <- tibble(prop_female = seq(from = 0, to = 1, by = 0.001),
                              prop_female * (mean_female_claw_cor-mean_male_claw_cor)/mean_male_claw_cor)
 
 #now plot the real populations on the hypothetical figure
-real_props_claw_cor <- tibble(prop_female = m_to_f_first$prop_female,
-                     unique_id = m_to_f_first$unique_id,
-                     site = m_to_f_first$site,
+real_props_claw_cor <- tibble(prop_female = m_to_f_accum$prop_female_accum,
+                     unique_id = m_to_f_accum$unique_id,
+                     site = m_to_f_accum$site,
                      #set to -Inf so they'll be right along the axis
                      delta = -Inf)
 
@@ -477,7 +486,8 @@ ggplot(summ_cis_claw_cor, aes(prop_female)) +
              shape = 108, size = 5) +
   theme(legend.position = "none")
 
-#ggsave("claw_corrected_predictions.pdf", height = 5, width = 7)
+#ggsave("Figure6.pdf", height = 5, width = 7)
+#ggsave("Figure6.png", height = 5, width = 7)
 
 #SUPPLEMENT: CLAW HEIGHT WITH SIZE CORRECTION EXTREME CIS--------------
 #do the exact same thing as the section above except instead of using the mean
@@ -648,7 +658,8 @@ ggplot(m_to_f, aes(x = site, y = prop_female)) +
        y = "Proportion of females in sample")
 #ggsave("population_proportions.pdf",width = 9, height = 6)
 
-emmean_ratio <- emmeans::emmeans(mod_repeat, specs = pairwise ~ "site")
+emmean_ratio <- emmeans::emmeans(mod_repeat, specs = pairwise ~ "site", 
+                                 type = "response")
 emmean_ratio
 plot(emmean_ratio)
 
@@ -658,3 +669,31 @@ m_to_f %>%
     geom_point() +
     facet_wrap(~group) +
     stat_smooth(method = 'lm')
+
+#sex ratios accumulated
+mod_accum <- glmer(prop_female_accum ~ site + (1|site:month), 
+                    weights = total_accum,
+                    family = binomial,
+                    data = m_to_f_accum)
+summary(mod_accum)
+
+accum_predict <- ggeffects::ggpredict(mod_accum, "site") %>% 
+  rename(site = x)
+
+ggplot(m_to_f_accum, aes(x = site, y = prop_female_accum)) +
+  #plot the raw data
+  geom_jitter(width = 0.2, alpha = 0.3) +
+  #now plot the  model output
+  geom_point(data = accum_predict,
+             aes(y = predicted), size = 3) + 
+  geom_errorbar(data = repeat_predict,
+                aes(y = predicted, ymin = conf.low, ymax = conf.high), 
+                width = 0.2) +
+  theme_paper_large() +
+  labs(x = "Site",
+       y = "Proportion of females in sample")
+#ggsave("population_proportions_accumulated_catch.pdf",width = 9, height = 6)
+emmean_ratio_accum <- emmeans::emmeans(mod_accum, specs = pairwise ~ "site", 
+                                       type = "response")
+emmean_ratio_accum
+plot(emmean_ratio_accum)
