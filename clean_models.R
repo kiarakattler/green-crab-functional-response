@@ -351,6 +351,63 @@ props <- ne_diffs %>%
 props[1,1]/2000 * 2  
 
 # ATTACK RATE, HANDLING TIME, MAX CONSUMPTION COMPARISON -----------
+#use bootcoefs to calculate CI around FRR
+female_boots <- as.data.frame(outII_female_boot$bootcoefs) %>% 
+  transmute(frr_female = a/h,
+            a_female = a,
+            h_female = h,
+            max_rate_female = 1/h)
+male_boots <- as.data.frame(outII_male_boot$bootcoefs) %>% 
+  transmute(frr_male = a/h,
+         a_male = a,
+         h_male = h,
+         max_rate_male = 1/h)
+compare_boots <- bind_cols(female_boots, male_boots) %>% 
+  mutate(frr_diff = frr_male - frr_female,
+         frr_ratio = frr_male/frr_female,
+         a_diff = a_male - a_female,
+         h_diff = h_male - h_female,
+         max_rate_diff = max_rate_male - max_rate_female)
+compare_summary <- compare_boots %>% 
+  summarize(a_diff_lower = quantile(a_diff, 0.025),
+            a_diff_mean = mean(a_diff),
+            a_diff_upper = quantile(a_diff, 0.975),
+            h_diff_lower = quantile(h_diff, 0.025),
+            h_diff_mean = mean(h_diff),
+            h_diff_upper = quantile(h_diff, 0.975),
+            max_rate_diff_lower = quantile(max_rate_diff, 0.025),
+            max_rate_diff_mean = mean(max_rate_diff),
+            max_rate_diff_upper = quantile(max_rate_diff, 0.975),
+            frr_diff_lower = quantile(frr_diff, 0.025),
+            frr_diff_mean = mean(frr_diff),
+            frr_diff_upper = quantile(frr_diff, 0.975),
+            frr_ratio_lower = quantile(frr_ratio, 0.025),
+            frr_ratio_mean = mean(frr_ratio),
+            frr_ratio_upper = quantile(frr_ratio, 0.975),
+            frr_male_lower = quantile(frr_male, 0.025),
+            frr_male_mean = mean(frr_male),
+            frr_male_upper = quantile(frr_male, 0.975),
+            frr_female_lower = quantile(frr_female, 0.025),
+            frr_female_mean = mean(frr_female),
+            frr_female_upper = quantile(frr_female, 0.975))
+
+ggplot(compare_boots, aes(frr_diff)) + 
+  geom_histogram()
+ggplot(compare_boots, aes(a_diff)) + 
+  geom_histogram()
+ggplot(compare_boots, aes(h_diff)) + 
+  geom_histogram()
+
+compare_lower <- quantile(compare_boots$frr_diff, 0.025)
+compare_upper <- quantile(compare_boots$frr_diff, 0.975)
+
+female_frr <- mean(female_boots$frr)
+female_lower_frr <- quantile(female_boots$frr_female, 0.025)
+female_upper_frr <- quantile(female_boots$frr_female, 0.975)
+male_frr <- mean(male_boots$frr)
+male_lower_frr <- quantile(male_boots$frr_male, 0.025)
+male_upper_frr <- quantile(male_boots$frr_male, 0.975)
+
 # use frair to compare a and h between males and females
 frair_compare(outII_female, outII_male, start = NULL)
 
